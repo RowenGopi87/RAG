@@ -29,7 +29,7 @@ echo.
 echo [2/6] 📁 Checking project directory...
 if not exist "app_corrected_final.py" (
     echo ❌ ERROR: app_corrected_final.py not found!
-    echo    Make sure you're running this from the RAG_Chatbot directory.
+    echo    Make sure you're running this from the RAG directory.
     echo    Current directory: %CD%
     pause
     exit /b 1

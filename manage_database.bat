@@ -8,7 +8,7 @@ echo.
 :: Check if clear_database.py exists
 if not exist "scripts\clear_database.py" (
     echo ❌ ERROR: scripts\clear_database.py not found!
-    echo    Make sure you're in the RAG_Chatbot directory.
+    echo    Make sure you're in the RAG directory.
     pause
     exit /b 1
 )

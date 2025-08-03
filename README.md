@@ -36,7 +36,7 @@ manage_database.bat
 ## 📁 Project Structure
 
 ```
-RAG_Chatbot/
+RAG/
 ├── 📱 app_corrected_final.py          # Main Flask application
 ├── 🔧 requirements_ultimate_fixed.txt  # Python dependencies
 ├── 🔑 .env                            # Environment variables (API keys)
