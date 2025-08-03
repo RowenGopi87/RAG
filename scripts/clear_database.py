@@ -5,10 +5,15 @@ Simple script to clear the ChromaDB vector database and related files
 
 import os
 import shutil
+import sys
 import logging
 from pathlib import Path
 import chromadb
 from chromadb.config import Settings
+
+# Add parent directory to path so we can import from src
+sys.path.append(str(Path(__file__).parent.parent))
+from src.config import Config
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -24,8 +29,8 @@ def clear_vector_database():
         items_to_clean = [
             ("image_registry.json", "file"),  # Image registry file
             ("processed_files.json", "file"), # Document processing registry
-            ("extracted_images", "dir"),      # Downloaded images folder
-            ("chroma_db", "dir")              # ChromaDB storage (last due to potential locks)
+            (str(Config.PROJECT_ROOT / "extracted_images"), "dir"),      # Downloaded images folder
+            (Config.CHROMA_PERSIST_DIRECTORY, "dir")              # ChromaDB storage (last due to potential locks)
         ]
         
         cleanup_count = 0
@@ -100,7 +105,7 @@ def clear_vector_database():
 
 def verify_cleanup():
     """Verify that cleanup was successful"""
-    items_to_check = ["chroma_db", "image_registry.json", "extracted_images", "processed_files.json"]
+    items_to_check = [Config.CHROMA_PERSIST_DIRECTORY, "image_registry.json", str(Config.PROJECT_ROOT / "extracted_images"), "processed_files.json"]
     
     all_clean = True
     for item in items_to_check:
@@ -121,11 +126,11 @@ def get_database_info():
         logger.info("📊 CURRENT DATABASE STATUS:")
         
         # Check ChromaDB
-        chroma_path = Path("chroma_db")
+        chroma_path = Path(Config.CHROMA_PERSIST_DIRECTORY)
         if chroma_path.exists():
             try:
                 client = chromadb.Client(Settings(
-                    persist_directory="./chroma_db",
+                    persist_directory=Config.CHROMA_PERSIST_DIRECTORY,
                     is_persistent=True
                 ))
                 collections = client.list_collections()
@@ -146,7 +151,7 @@ def get_database_info():
         # Check other files
         other_files = {
             "image_registry.json": "Image registry",
-            "extracted_images": "Downloaded images",
+            str(Config.PROJECT_ROOT / "extracted_images"): "Downloaded images",
             "processed_files.json": "Processing registry"
         }
         

@@ -1,0 +1,168 @@
+[1mdiff --git a/app_corrected_final.py b/app_corrected_final.py[m
+[1mindex f836f06..b8e413c 100644[m
+[1m--- a/app_corrected_final.py[m
+[1m+++ b/app_corrected_final.py[m
+[36m@@ -16,6 +16,7 @@[m [mimport glob[m
+ [m
+ # Import our corrected processors with fallback handling[m
+ from src.pdf_ocr_fix_corrected import EnhancedPDFProcessor[m
+[32m+[m[32mfrom src.config import Config[m
+ [m
+ # Optional document processor import[m
+ try:[m
+[36m@@ -46,8 +47,8 @@[m [mCORS(app)[m
+ [m
+ # Configuration[m
+ app.config['MAX_CONTENT_LENGTH'] = 32 * 1024 * 1024  # 32MB max file size[m
+[31m-app.config['UPLOAD_FOLDER'] = 'uploads'[m
+[31m-app.config['IMAGES_FOLDER'] = 'extracted_images'[m
+[32m+[m[32mapp.config['UPLOAD_FOLDER'] = Config.UPLOAD_FOLDER[m
+[32m+[m[32mapp.config['IMAGES_FOLDER'] = str(Config.PROJECT_ROOT / 'extracted_images')[m
+ ALLOWED_EXTENSIONS = {'pdf', 'jpg', 'jpeg', 'png', 'docx', 'pptx', 'xlsx'}[m
+ [m
+ # Ensure folders exist[m
+[36m@@ -56,7 +57,7 @@[m [mos.makedirs(app.config['IMAGES_FOLDER'], exist_ok=True)[m
+ [m
+ # Initialize ChromaDB client[m
+ chroma_client = chromadb.Client(Settings([m
+[31m-    persist_directory="./chroma_db",[m
+[32m+[m[32m    persist_directory=Config.CHROMA_PERSIST_DIRECTORY,[m
+     is_persistent=True[m
+ ))[m
+ [m
+[36m@@ -906,8 +907,8 @@[m [mdef clear_database():[m
+         items_to_clean = [[m
+             ("image_registry.json", "file"),[m
+             ("processed_files.json", "file"),[m
+[31m-            ("extracted_images", "dir"),[m
+[31m-            ("chroma_db", "dir")  # ChromaDB last after client reset[m
+[32m+[m[32m            (app.config['IMAGES_FOLDER'], "dir"),[m
+[32m+[m[32m            (Config.CHROMA_PERSIST_DIRECTORY, "dir")  # ChromaDB last after client reset[m
+         ][m
+         [m
+         cleaned_count = 0[m
+[36m@@ -944,7 +945,7 @@[m [mdef clear_database():[m
+         try:[m
+             logger.info("🔄 Reinitializing ChromaDB client...")[m
+             chroma_client = chromadb.Client(Settings([m
+[31m-                persist_directory="./chroma_db",[m
+[32m+[m[32m                persist_directory=Config.CHROMA_PERSIST_DIRECTORY,[m
+                 is_persistent=True[m
+             ))[m
+         except Exception as e:[m
+[36m@@ -955,7 +956,7 @@[m [mdef clear_database():[m
+         # Step 5: Recreate necessary folders[m
+         try:[m
+             os.makedirs(app.config['IMAGES_FOLDER'], exist_ok=True)[m
+[31m-            os.makedirs("chroma_db", exist_ok=True)[m
+[32m+[m[32m            os.makedirs(Config.CHROMA_PERSIST_DIRECTORY, exist_ok=True)[m
+         except Exception as e:[m
+             logger.warning(f"⚠️ Warning creating folders: {e}")[m
+         [m
+[36m@@ -976,9 +977,9 @@[m [mdef database_status():[m
+     """Get database status information"""[m
+     try:[m
+         status = {[m
+[31m-            'chromadb_exists': Path('chroma_db').exists(),[m
+[32m+[m[32m            'chromadb_exists': Path(Config.CHROMA_PERSIST_DIRECTORY).exists(),[m
+             'image_registry_exists': Path('image_registry.json').exists(),[m
+[31m-            'extracted_images_exists': Path('extracted_images').exists(),[m
+[32m+[m[32m            'extracted_images_exists': Path(app.config['IMAGES_FOLDER']).exists(),[m
+             'processed_files_exists': Path('processed_files.json').exists(),[m
+             'total_documents': 0,[m
+             'collections': [][m
+[1mdiff --git a/scripts/clear_database.py b/scripts/clear_database.py[m
+[1mindex c9a1470..948e60b 100644[m
+[1m--- a/scripts/clear_database.py[m
+[1m+++ b/scripts/clear_database.py[m
+[36m@@ -5,11 +5,16 @@[m [mSimple script to clear the ChromaDB vector database and related files[m
+ [m
+ import os[m
+ import shutil[m
+[32m+[m[32mimport sys[m
+ import logging[m
+ from pathlib import Path[m
+ import chromadb[m
+ from chromadb.config import Settings[m
+ [m
+[32m+[m[32m# Add parent directory to path so we can import from src[m
+[32m+[m[32msys.path.append(str(Path(__file__).parent.parent))[m
+[32m+[m[32mfrom src.config import Config[m
+[32m+[m
+ # Configure logging[m
+ logging.basicConfig(level=logging.INFO)[m
+ logger = logging.getLogger(__name__)[m
+[36m@@ -24,8 +29,8 @@[m [mdef clear_vector_database():[m
+         items_to_clean = [[m
+             ("image_registry.json", "file"),  # Image registry file[m
+             ("processed_files.json", "file"), # Document processing registry[m
+[31m-            ("extracted_images", "dir"),      # Downloaded images folder[m
+[31m-            ("chroma_db", "dir")              # ChromaDB storage (last due to potential locks)[m
+[32m+[m[32m            (str(Config.PROJECT_ROOT / "extracted_images"), "dir"),      # Downloaded images folder[m
+[32m+[m[32m            (Config.CHROMA_PERSIST_DIRECTORY, "dir")              # ChromaDB storage (last due to potential locks)[m
+         ][m
+         [m
+         cleanup_count = 0[m
+[36m@@ -100,7 +105,7 @@[m [mdef clear_vector_database():[m
+ [m
+ def verify_cleanup():[m
+     """Verify that cleanup was successful"""[m
+[31m-    items_to_check = ["chroma_db", "image_registry.json", "extracted_images", "processed_files.json"][m
+[32m+[m[32m    items_to_check = [Config.CHROMA_PERSIST_DIRECTORY, "image_registry.json", str(Config.PROJECT_ROOT / "extracted_images"), "processed_files.json"][m
+     [m
+     all_clean = True[m
+     for item in items_to_check:[m
+[36m@@ -121,11 +126,11 @@[m [mdef get_database_info():[m
+         logger.info("📊 CURRENT DATABASE STATUS:")[m
+         [m
+         # Check ChromaDB[m
+[31m-        chroma_path = Path("chroma_db")[m
+[32m+[m[32m        chroma_path = Path(Config.CHROMA_PERSIST_DIRECTORY)[m
+         if chroma_path.exists():[m
+             try:[m
+                 client = chromadb.Client(Settings([m
+[31m-                    persist_directory="./chroma_db",[m
+[32m+[m[32m                    persist_directory=Config.CHROMA_PERSIST_DIRECTORY,[m
+                     is_persistent=True[m
+                 ))[m
+                 collections = client.list_collections()[m
+[36m@@ -146,7 +151,7 @@[m [mdef get_database_info():[m
+         # Check other files[m
+         other_files = {[m
+             "image_registry.json": "Image registry",[m
+[31m-            "extracted_images": "Downloaded images",[m
+[32m+[m[32m            str(Config.PROJECT_ROOT / "extracted_images"): "Downloaded images",[m
+             "processed_files.json": "Processing registry"[m
+         }[m
+         [m
+[1mdiff --git a/src/config.py b/src/config.py[m
+[1mindex e5d6fb4..76bfa05 100644[m
+[1m--- a/src/config.py[m
+[1m+++ b/src/config.py[m
+[36m@@ -1,8 +1,12 @@[m
+ import os[m
+[32m+[m[32mfrom pathlib import Path[m
+ [m
+ class Config:[m
+     """Configuration class for the RAG Chatbot"""[m
+     [m
+[32m+[m[32m    # Get the project root directory (where this config file's parent's parent is)[m
+[32m+[m[32m    PROJECT_ROOT = Path(__file__).parent.parent.absolute()[m
+[32m+[m[41m    [m
+     # OpenAI Configuration[m
+     OPENAI_API_KEY = os.getenv('OPENAI_API_KEY', '')[m
+     [m
+[36m@@ -11,11 +15,11 @@[m [mclass Config:[m
+     MAX_CONTENT_LENGTH = 16 * 1024 * 1024  # 16MB max file size[m
+     [m
+     # Upload Configuration[m
+[31m-    UPLOAD_FOLDER = 'uploads'[m
+[32m+[m[32m    UPLOAD_FOLDER = str(PROJECT_ROOT / 'uploads')[m
+     ALLOWED_EXTENSIONS = {'pdf'}[m
+     [m
+     # ChromaDB Configuration[m
+[31m-    CHROMA_PERSIST_DIRECTORY = "./chroma_db"[m
+[32m+[m[32m    CHROMA_PERSIST_DIRECTORY = str(PROJECT_ROOT / "chroma_db")[m
+     CHROMA_COLLECTION_NAME = "documents"[m
+     [m
+     # RAG Configuration[m

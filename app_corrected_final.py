@@ -16,6 +16,7 @@ import glob
 
 # Import our corrected processors with fallback handling
 from src.pdf_ocr_fix_corrected import EnhancedPDFProcessor
+from src.config import Config
 
 # Optional document processor import
 try:
@@ -46,8 +47,8 @@ CORS(app)
 
 # Configuration
 app.config['MAX_CONTENT_LENGTH'] = 32 * 1024 * 1024  # 32MB max file size
-app.config['UPLOAD_FOLDER'] = 'uploads'
-app.config['IMAGES_FOLDER'] = 'extracted_images'
+app.config['UPLOAD_FOLDER'] = Config.UPLOAD_FOLDER
+app.config['IMAGES_FOLDER'] = str(Config.PROJECT_ROOT / 'extracted_images')
 ALLOWED_EXTENSIONS = {'pdf', 'jpg', 'jpeg', 'png', 'docx', 'pptx', 'xlsx'}
 
 # Ensure folders exist
@@ -56,7 +57,7 @@ os.makedirs(app.config['IMAGES_FOLDER'], exist_ok=True)
 
 # Initialize ChromaDB client
 chroma_client = chromadb.Client(Settings(
-    persist_directory="./chroma_db",
+    persist_directory=Config.CHROMA_PERSIST_DIRECTORY,
     is_persistent=True
 ))
 
@@ -906,8 +907,8 @@ def clear_database():
         items_to_clean = [
             ("image_registry.json", "file"),
             ("processed_files.json", "file"),
-            ("extracted_images", "dir"),
-            ("chroma_db", "dir")  # ChromaDB last after client reset
+            (app.config['IMAGES_FOLDER'], "dir"),
+            (Config.CHROMA_PERSIST_DIRECTORY, "dir")  # ChromaDB last after client reset
         ]
         
         cleaned_count = 0
@@ -944,7 +945,7 @@ def clear_database():
         try:
             logger.info("🔄 Reinitializing ChromaDB client...")
             chroma_client = chromadb.Client(Settings(
-                persist_directory="./chroma_db",
+                persist_directory=Config.CHROMA_PERSIST_DIRECTORY,
                 is_persistent=True
             ))
         except Exception as e:
@@ -955,7 +956,7 @@ def clear_database():
         # Step 5: Recreate necessary folders
         try:
             os.makedirs(app.config['IMAGES_FOLDER'], exist_ok=True)
-            os.makedirs("chroma_db", exist_ok=True)
+            os.makedirs(Config.CHROMA_PERSIST_DIRECTORY, exist_ok=True)
         except Exception as e:
             logger.warning(f"⚠️ Warning creating folders: {e}")
         
@@ -976,9 +977,9 @@ def database_status():
     """Get database status information"""
     try:
         status = {
-            'chromadb_exists': Path('chroma_db').exists(),
+            'chromadb_exists': Path(Config.CHROMA_PERSIST_DIRECTORY).exists(),
             'image_registry_exists': Path('image_registry.json').exists(),
-            'extracted_images_exists': Path('extracted_images').exists(),
+            'extracted_images_exists': Path(app.config['IMAGES_FOLDER']).exists(),
             'processed_files_exists': Path('processed_files.json').exists(),
             'total_documents': 0,
             'collections': []

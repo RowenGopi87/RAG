@@ -1,7 +1,11 @@
 import os
+from pathlib import Path
 
 class Config:
     """Configuration class for the RAG Chatbot"""
+    
+    # Get the project root directory (where this config file's parent's parent is)
+    PROJECT_ROOT = Path(__file__).parent.parent.absolute()
     
     # OpenAI Configuration
     OPENAI_API_KEY = os.getenv('OPENAI_API_KEY', '')
@@ -11,11 +15,11 @@ class Config:
     MAX_CONTENT_LENGTH = 16 * 1024 * 1024  # 16MB max file size
     
     # Upload Configuration
-    UPLOAD_FOLDER = 'uploads'
+    UPLOAD_FOLDER = str(PROJECT_ROOT / 'uploads')
     ALLOWED_EXTENSIONS = {'pdf'}
     
     # ChromaDB Configuration
-    CHROMA_PERSIST_DIRECTORY = "./chroma_db"
+    CHROMA_PERSIST_DIRECTORY = str(PROJECT_ROOT / "chroma_db")
     CHROMA_COLLECTION_NAME = "documents"
     
     # RAG Configuration
