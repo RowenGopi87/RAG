@@ -1,0 +1,32 @@
+# Core Flask and API
+flask==3.0.0
+flask-cors==4.0.0
+python-dotenv==1.0.0
+
+# AI and Vector Database
+chromadb==1.0.15
+openai==1.82.0
+
+# Text Processing
+langchain-text-splitters>=0.3.8
+sentence-transformers==3.3.1
+
+# Enhanced PDF processing with OCR
+PyPDF2==3.0.1
+PyMuPDF>=1.23.0  # Better PDF processing with image support (flexible version)
+pytesseract==0.3.13  # OCR engine
+Pillow>=10.0.0  # Image processing (flexible version)
+
+# Web scraping and parsing
+requests>=2.28.0  # HTTP requests (flexible version)
+beautifulsoup4>=4.11.0  # HTML parsing (flexible version)
+lxml>=4.9.0  # XML/HTML parser (flexible version)
+urllib3>=1.26.0  # URL handling (flexible version)
+
+# Additional utilities for enhanced processing
+pathlib2==2.3.7 
+
+# Machine Learning & Visualization
+scikit-learn
+numpy
+umap-learn 

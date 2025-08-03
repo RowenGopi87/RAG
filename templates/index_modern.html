@@ -1,0 +1,2028 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Insight - AI Research Assistant</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        :root {
+            --primary-color: #2563eb;
+            --primary-light: #3b82f6;
+            --primary-dark: #1d4ed8;
+            --secondary-color: #64748b;
+            --background: #f8fafc;
+            --surface: #ffffff;
+            --surface-hover: #f1f5f9;
+            --text-primary: #0f172a;
+            --text-secondary: #475569;
+            --text-muted: #94a3b8;
+            --border: #e2e8f0;
+            --border-light: #f1f5f9;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --error: #ef4444;
+            --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+            --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', Roboto, sans-serif;
+            background: var(--background);
+            color: var(--text-primary);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* Header */
+        .header {
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            padding: 1rem 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: between;
+            box-shadow: var(--shadow);
+            z-index: 100;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 2rem;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: 700;
+            font-size: 1.25rem;
+            color: var(--primary-color);
+        }
+
+        .logo i {
+            font-size: 1.5rem;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-left: auto;
+        }
+
+        .settings-btn {
+            background: none;
+            border: none;
+            padding: 0.5rem;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            color: var(--text-secondary);
+            transition: all 0.2s ease;
+            font-size: 1.1rem;
+        }
+
+        .settings-btn:hover {
+            background: var(--surface-hover);
+            color: var(--text-primary);
+        }
+
+        .settings-btn.active {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        /* Settings Panel */
+        .settings-panel {
+            position: fixed;
+            top: 0;
+            right: -400px;
+            width: 400px;
+            height: 100vh;
+            background: var(--surface);
+            border-left: 1px solid var(--border);
+            box-shadow: var(--shadow-xl);
+            z-index: 200;
+            transition: right 0.3s ease;
+            overflow-y: auto;
+        }
+
+        .settings-panel.open {
+            right: 0;
+        }
+
+        .settings-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .settings-title {
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+
+        .close-settings {
+            background: none;
+            border: none;
+            padding: 0.5rem;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            color: var(--text-secondary);
+            transition: all 0.2s ease;
+        }
+
+        .close-settings:hover {
+            background: var(--surface-hover);
+            color: var(--text-primary);
+        }
+
+        .settings-content {
+            padding: 1.5rem;
+        }
+
+        .settings-section {
+            margin-bottom: 2rem;
+        }
+
+        .settings-section-title {
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-bottom: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Form Elements */
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-label {
+            display: block;
+            font-weight: 500;
+            font-size: 0.9rem;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .file-upload {
+            position: relative;
+            border: 2px dashed var(--border);
+            border-radius: 0.75rem;
+            padding: 2rem;
+            text-align: center;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+
+        .file-upload:hover {
+            border-color: var(--primary-color);
+            background: var(--surface-hover);
+        }
+
+        .file-upload.dragover {
+            border-color: var(--primary-color);
+            background: var(--primary-color);
+            background-opacity: 0.05;
+        }
+
+        .file-upload input {
+            position: absolute;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+        }
+
+        .upload-icon {
+            font-size: 2rem;
+            color: var(--text-muted);
+            margin-bottom: 0.5rem;
+        }
+
+        .upload-text {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .input {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 2px solid var(--border);
+            border-radius: 0.5rem;
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+            background: var(--surface);
+        }
+
+        .input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgb(37 99 235 / 0.1);
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 0.5rem;
+            font-weight: 500;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-decoration: none;
+        }
+
+        .btn-primary {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .btn-secondary {
+            background: var(--surface);
+            color: var(--text-secondary);
+            border: 2px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            background: var(--surface-hover);
+            border-color: var(--primary-color);
+            color: var(--primary-color);
+        }
+
+        .btn-danger {
+            background: var(--error);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Chat Container */
+        .chat-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            max-width: 1200px;
+            margin: 0 auto;
+            width: 100%;
+            height: calc(100vh - 81px);
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 2rem;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            scroll-behavior: smooth;
+        }
+
+        .message {
+            display: flex;
+            gap: 1rem;
+            max-width: 85%;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message.user {
+            align-self: flex-end;
+            flex-direction: row-reverse;
+        }
+
+        .message.assistant {
+            align-self: flex-start;
+        }
+
+        .message-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            flex-shrink: 0;
+        }
+
+        .message.user .message-avatar {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .message.assistant .message-avatar {
+            background: var(--surface-hover);
+            color: var(--text-secondary);
+        }
+
+        .message-content {
+            flex: 1;
+        }
+
+        .message-bubble {
+            padding: 1rem 1.25rem;
+            border-radius: 1rem;
+            line-height: 1.6;
+            font-size: 0.95rem;
+            word-wrap: break-word;
+        }
+
+        .message.user .message-bubble {
+            background: var(--primary-color);
+            color: white;
+            border-bottom-right-radius: 0.25rem;
+        }
+
+        .message.assistant .message-bubble {
+            background: var(--surface);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+            border-bottom-left-radius: 0.25rem;
+            box-shadow: var(--shadow);
+        }
+
+        /* Image Gallery */
+        .image-gallery {
+            margin-top: 1rem;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+
+        .image-item {
+            position: relative;
+            border-radius: 0.75rem;
+            overflow: hidden;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: var(--shadow);
+        }
+
+        .image-item:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .image-item img {
+            width: 100%;
+            height: 150px;
+            object-fit: cover;
+            display: block;
+        }
+
+        .image-caption {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(transparent, rgba(0,0,0,0.7));
+            color: white;
+            padding: 1rem 0.75rem 0.75rem;
+            font-size: 0.8rem;
+            line-height: 1.4;
+        }
+
+        /* Sources */
+        .sources {
+            margin-top: 1rem;
+            padding: 1rem;
+            background: var(--surface-hover);
+            border-radius: 0.5rem;
+            border-left: 4px solid var(--primary-color);
+        }
+
+        .sources-title {
+            font-weight: 600;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .source-item {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.25rem;
+        }
+
+        /* Chat Input */
+        .chat-input-container {
+            padding: 1.5rem 2rem;
+            background: var(--surface);
+            border-top: 1px solid var(--border);
+        }
+
+        .chat-input-wrapper {
+            position: relative;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .chat-input {
+            width: 100%;
+            padding: 1rem 4rem 1rem 1.5rem;
+            border: 2px solid var(--border);
+            border-radius: 1.5rem;
+            font-size: 1rem;
+            resize: none;
+            transition: all 0.2s ease;
+            background: var(--surface);
+            max-height: 120px;
+            min-height: 56px;
+        }
+
+        .chat-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgb(37 99 235 / 0.1);
+        }
+
+        .send-btn {
+            position: absolute;
+            right: 0.5rem;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 40px;
+            height: 40px;
+            border: none;
+            border-radius: 50%;
+            background: var(--primary-color);
+            color: white;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .send-btn:hover {
+            background: var(--primary-dark);
+            transform: translateY(-50%) scale(1.05);
+        }
+
+        .send-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: translateY(-50%);
+        }
+
+        /* Loading Spinner */
+        .loading {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--border);
+            border-top: 2px solid var(--primary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Modal */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .modal.open {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal-content {
+            position: relative;
+            max-width: 90vw;
+            max-height: 90vh;
+            background: var(--surface);
+            border-radius: 1rem;
+            overflow: hidden;
+            box-shadow: var(--shadow-xl);
+        }
+
+        .modal-image {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            width: 40px;
+            height: 40px;
+            border: none;
+            border-radius: 50%;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            transition: all 0.2s ease;
+        }
+
+        .modal-close:hover {
+            background: rgba(0, 0, 0, 0.9);
+        }
+
+        /* Empty State */
+        .empty-state {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 3rem 2rem;
+            color: var(--text-muted);
+        }
+
+        .empty-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            color: var(--text-muted);
+        }
+
+        .empty-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: var(--text-secondary);
+        }
+
+        .empty-subtitle {
+            font-size: 1rem;
+            line-height: 1.5;
+        }
+
+        /* Status Messages */
+        .status {
+            margin-top: 1rem;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            font-size: 0.9rem;
+            display: none;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .status.success {
+            background: #dcfce7;
+            color: #166534;
+            border: 1px solid #bbf7d0;
+        }
+
+        .status.error {
+            background: #fef2f2;
+            color: #991b1b;
+            border: 1px solid #fecaca;
+        }
+
+        .status.info {
+            background: #dbeafe;
+            color: #1e40af;
+            border: 1px solid #bfdbfe;
+        }
+
+        .status.warning {
+            background: #fef3c7;
+            color: #92400e;
+            border: 1px solid #fcd34d;
+        }
+
+        /* Settings Panel Overlay */
+        .settings-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.3);
+            z-index: 150;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .settings-overlay.open {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .header {
+                padding: 1rem;
+            }
+            
+            .chat-messages {
+                padding: 1rem;
+            }
+            
+            .chat-input-container {
+                padding: 1rem;
+            }
+            
+            .message {
+                max-width: 95%;
+            }
+            
+            .settings-panel {
+                width: 100%;
+                right: -100%;
+            }
+            
+            .image-gallery {
+                grid-template-columns: 1fr;
+            }
+            
+            .modal-content {
+                margin: 1rem;
+            }
+        }
+
+        /* Scrollbar Styling */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--surface-hover);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-muted);
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 2rem;
+        }
+
+        .nav-tabs {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .nav-tab {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            border: none;
+            background: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            border-radius: 0.5rem;
+            transition: all 0.2s ease;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .nav-tab:hover {
+            background: var(--surface-hover);
+            color: var(--text-primary);
+        }
+
+        .nav-tab.active {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .nav-tab i {
+            font-size: 1rem;
+        }
+
+        /* Tab Content */
+        .tab-content {
+            display: none;
+            flex: 1;
+            flex-direction: column;
+            height: calc(100vh - 81px);
+        }
+
+        .tab-content.active {
+            display: flex;
+        }
+
+        /* Vector Space Styles */
+        .vector-container {
+            background: var(--background);
+        }
+
+        .vector-header {
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            padding: 1.5rem 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .vector-title h2 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .vector-title p {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .vector-controls {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .vector-method {
+            padding: 0.5rem 1rem;
+            border: 2px solid var(--border);
+            border-radius: 0.5rem;
+            background: var(--surface);
+            color: var(--text-primary);
+            font-size: 0.9rem;
+        }
+
+        .vector-content {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+        }
+
+        .vector-sidebar {
+            width: 300px;
+            background: var(--surface);
+            border-right: 1px solid var(--border);
+            padding: 1.5rem;
+            overflow-y: auto;
+        }
+
+        .vector-stats {
+            margin-bottom: 2rem;
+        }
+
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        .stat-item:last-child {
+            border-bottom: none;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .stat-value {
+            font-weight: 600;
+            font-size: 1.1rem;
+            color: var(--primary-color);
+        }
+
+        .vector-sources {
+            margin-bottom: 2rem;
+        }
+
+        .vector-sources h4 {
+            font-size: 1rem;
+            margin-bottom: 1rem;
+            color: var(--text-primary);
+        }
+
+        .sources-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .source-item {
+            padding: 0.75rem;
+            background: var(--surface-hover);
+            border-radius: 0.5rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border-left: 3px solid transparent;
+        }
+
+        .source-item:hover {
+            background: var(--border-light);
+            border-left-color: var(--primary-color);
+        }
+
+        .source-item.selected {
+            background: var(--primary-color);
+            color: white;
+            border-left-color: var(--primary-dark);
+        }
+
+        .source-name {
+            font-weight: 500;
+            margin-bottom: 0.25rem;
+            font-size: 0.9rem;
+        }
+
+        .source-meta {
+            font-size: 0.8rem;
+            opacity: 0.8;
+        }
+
+        .vector-selected {
+            background: var(--surface-hover);
+            border-radius: 0.5rem;
+            padding: 1rem;
+        }
+
+        .vector-selected h4 {
+            margin-bottom: 1rem;
+            font-size: 1rem;
+        }
+
+        .selected-source {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: var(--primary-color);
+        }
+
+        .selected-preview {
+            font-size: 0.85rem;
+            line-height: 1.4;
+            margin-bottom: 1rem;
+            color: var(--text-secondary);
+        }
+
+        .selected-keywords {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.25rem;
+        }
+
+        .keyword-tag {
+            background: var(--primary-color);
+            color: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 1rem;
+            font-size: 0.7rem;
+            font-weight: 500;
+        }
+
+        .vector-visualization {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .vector-canvas-container {
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+
+        #vectorCanvas {
+            width: 100%;
+            height: 100%;
+            cursor: grab;
+        }
+
+        #vectorCanvas:active {
+            cursor: grabbing;
+        }
+
+        .vector-loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            color: var(--text-secondary);
+        }
+
+        .vector-loading .spinner {
+            width: 40px;
+            height: 40px;
+            margin: 0 auto 1rem;
+        }
+
+        .vector-empty {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            color: var(--text-muted);
+        }
+
+        .vector-empty .empty-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        .vector-empty h3 {
+            font-size: 1.25rem;
+            margin-bottom: 0.5rem;
+            color: var(--text-secondary);
+        }
+
+        .vector-tooltip {
+            position: absolute;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+            padding: 0.75rem;
+            box-shadow: var(--shadow-lg);
+            pointer-events: none;
+            z-index: 1000;
+            max-width: 250px;
+        }
+
+        .tooltip-source {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: var(--primary-color);
+            font-size: 0.9rem;
+        }
+
+        .tooltip-preview {
+            font-size: 0.8rem;
+            line-height: 1.3;
+            margin-bottom: 0.5rem;
+            color: var(--text-secondary);
+        }
+
+        .tooltip-keywords {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.25rem;
+        }
+
+        .tooltip-keywords .keyword-tag {
+            font-size: 0.7rem;
+        }
+
+        /* Vector Points */
+        .vector-point {
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .vector-point:hover {
+            stroke-width: 2;
+        }
+
+        .vector-point.selected {
+            stroke: var(--primary-dark);
+            stroke-width: 3;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <div class="header-left">
+            <div class="logo">
+                <i class="fas fa-brain"></i>
+                <span>Insight</span>
+            </div>
+            <nav class="nav-tabs">
+                <button class="nav-tab active" data-tab="chat">
+                    <i class="fas fa-comments"></i>
+                    <span>Chat</span>
+                </button>
+                <button class="nav-tab" data-tab="vectors">
+                    <i class="fas fa-project-diagram"></i>
+                    <span>Vector Space</span>
+                </button>
+            </nav>
+        </div>
+        <div class="header-right">
+            <button class="settings-btn" id="settingsBtn">
+                <i class="fas fa-cog"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Settings Panel -->
+    <div class="settings-overlay" id="settingsOverlay"></div>
+    <div class="settings-panel" id="settingsPanel">
+        <div class="settings-header">
+            <h2 class="settings-title">Settings</h2>
+            <button class="close-settings" id="closeSettings">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="settings-content">
+            <!-- Document Upload Section -->
+            <div class="settings-section">
+                <h3 class="settings-section-title">Document Upload</h3>
+                <div class="form-group">
+                    <label class="form-label">Upload Documents</label>
+                    <div class="file-upload" id="fileUpload">
+                        <input type="file" id="fileInput" multiple accept=".pdf,.txt,.docx,.jpg,.jpeg,.png">
+                        <div class="upload-icon">
+                            <i class="fas fa-cloud-upload-alt"></i>
+                        </div>
+                        <div class="upload-text">
+                            Click to upload or drag and drop<br>
+                            <small>PDF, TXT, DOCX, JPG, PNG files</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="status" id="uploadStatus"></div>
+            </div>
+
+            <!-- URL Processing Section -->
+            <div class="settings-section">
+                <h3 class="settings-section-title">Web Content</h3>
+                <div class="form-group">
+                    <label class="form-label">Process URL</label>
+                    <input type="url" class="input" id="urlInput" placeholder="https://example.com">
+                </div>
+                <button class="btn btn-primary" id="processUrlBtn">
+                    <i class="fas fa-globe"></i>
+                    Process URL
+                </button>
+                <div class="status" id="urlStatus"></div>
+            </div>
+
+            <!-- Database Management Section -->
+            <div class="settings-section">
+                <h3 class="settings-section-title">Database</h3>
+                <button class="btn btn-danger" id="clearDbBtn">
+                    <i class="fas fa-trash"></i>
+                    Clear Database
+                </button>
+                <div class="status" id="dbStatus"></div>
+            </div>
+
+            <!-- System Information -->
+            <div class="settings-section">
+                <h3 class="settings-section-title">System Health</h3>
+                <button class="btn btn-secondary" id="healthCheckBtn">
+                    <i class="fas fa-heartbeat"></i>
+                    Check Health
+                </button>
+                <div class="status" id="healthStatus"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Chat Container -->
+    <div class="chat-container tab-content active" id="chatTab">
+        <div class="chat-messages" id="chatMessages">
+            <div class="empty-state">
+                <div class="empty-icon">
+                    <i class="fas fa-comments"></i>
+                </div>
+                <h3 class="empty-title">Welcome to Insight</h3>
+                <p class="empty-subtitle">
+                    Your AI research assistant. Ask questions about your documents or any topic.<br>
+                    Upload documents or process web content using the settings panel.
+                </p>
+            </div>
+        </div>
+
+        <div class="chat-input-container">
+            <div class="chat-input-wrapper">
+                <textarea 
+                    class="chat-input" 
+                    id="chatInput" 
+                    placeholder="Ask me anything about your documents..."
+                    rows="1"
+                ></textarea>
+                <button class="send-btn" id="sendBtn">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Vector Space Visualization Container -->
+    <div class="vector-container tab-content" id="vectorsTab">
+        <div class="vector-header">
+            <div class="vector-title">
+                <h2>Vector Space Visualization</h2>
+                <p>Explore your document embeddings in 2D space</p>
+            </div>
+            <div class="vector-controls">
+                <select class="vector-method" id="reductionMethod">
+                    <option value="tsne">t-SNE</option>
+                    <option value="umap">UMAP</option>
+                </select>
+                <button class="btn btn-primary" id="refreshVectors">
+                    <i class="fas fa-sync-alt"></i>
+                    Refresh
+                </button>
+            </div>
+        </div>
+
+        <div class="vector-content">
+            <div class="vector-sidebar">
+                <div class="vector-stats" id="vectorStats">
+                    <div class="stat-item">
+                        <div class="stat-label">Total Vectors</div>
+                        <div class="stat-value" id="totalVectors">-</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Documents</div>
+                        <div class="stat-value" id="totalSources">-</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Dimensions</div>
+                        <div class="stat-value" id="embeddingDim">-</div>
+                    </div>
+                </div>
+
+                <div class="vector-sources" id="vectorSources">
+                    <h4>Document Sources</h4>
+                    <div class="sources-list" id="sourcesList">
+                        <!-- Sources will be populated here -->
+                    </div>
+                </div>
+
+                <div class="vector-selected" id="vectorSelected" style="display: none;">
+                    <h4>Selected Vector</h4>
+                    <div class="selected-info">
+                        <div class="selected-source" id="selectedSource"></div>
+                        <div class="selected-preview" id="selectedPreview"></div>
+                        <div class="selected-keywords" id="selectedKeywords"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="vector-visualization">
+                <div class="vector-canvas-container">
+                    <svg id="vectorCanvas" width="100%" height="100%">
+                        <!-- Visualization will be rendered here -->
+                    </svg>
+                    <div class="vector-loading" id="vectorLoading">
+                        <div class="spinner"></div>
+                        <p>Loading vector space...</p>
+                    </div>
+                    <div class="vector-empty" id="vectorEmpty" style="display: none;">
+                        <div class="empty-icon">
+                            <i class="fas fa-project-diagram"></i>
+                        </div>
+                        <h3>No Vector Data</h3>
+                        <p>Upload some documents to see the vector space visualization.</p>
+                    </div>
+                </div>
+                <div class="vector-tooltip" id="vectorTooltip" style="display: none;">
+                    <div class="tooltip-source"></div>
+                    <div class="tooltip-preview"></div>
+                    <div class="tooltip-keywords"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Image Modal -->
+    <div class="modal" id="imageModal">
+        <div class="modal-content">
+            <button class="modal-close" id="modalClose">
+                <i class="fas fa-times"></i>
+            </button>
+            <img class="modal-image" id="modalImage" src="" alt="">
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let isLoading = false;
+        let vectorData = null;
+        let currentVectorView = null;
+
+        // DOM elements
+        const settingsBtn = document.getElementById('settingsBtn');
+        const settingsPanel = document.getElementById('settingsPanel');
+        const settingsOverlay = document.getElementById('settingsOverlay');
+        const closeSettings = document.getElementById('closeSettings');
+        const chatMessages = document.getElementById('chatMessages');
+        const chatInput = document.getElementById('chatInput');
+        const sendBtn = document.getElementById('sendBtn');
+        const fileInput = document.getElementById('fileInput');
+        const fileUpload = document.getElementById('fileUpload');
+        const urlInput = document.getElementById('urlInput');
+        const processUrlBtn = document.getElementById('processUrlBtn');
+        const clearDbBtn = document.getElementById('clearDbBtn');
+        const healthCheckBtn = document.getElementById('healthCheckBtn');
+        const imageModal = document.getElementById('imageModal');
+        const modalImage = document.getElementById('modalImage');
+        const modalClose = document.getElementById('modalClose');
+
+        // Vector visualization elements
+        const navTabs = document.querySelectorAll('.nav-tab');
+        const tabContents = document.querySelectorAll('.tab-content');
+        const refreshVectorsBtn = document.getElementById('refreshVectors');
+        const reductionMethodSelect = document.getElementById('reductionMethod');
+        const vectorCanvas = document.getElementById('vectorCanvas');
+        const vectorLoading = document.getElementById('vectorLoading');
+        const vectorEmpty = document.getElementById('vectorEmpty');
+        const vectorTooltip = document.getElementById('vectorTooltip');
+
+        // Tab switching functionality
+        navTabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                const targetTab = tab.dataset.tab;
+                switchTab(targetTab);
+            });
+        });
+
+        function switchTab(tabName) {
+            // Update nav tabs
+            navTabs.forEach(tab => {
+                tab.classList.toggle('active', tab.dataset.tab === tabName);
+            });
+
+            // Update tab content
+            tabContents.forEach(content => {
+                content.classList.toggle('active', content.id === `${tabName}Tab`);
+            });
+
+            // Initialize vector visualization if switching to vectors tab
+            if (tabName === 'vectors' && !vectorData) {
+                loadVectorSpace();
+            }
+        }
+
+        // Vector Space Visualization
+        async function loadVectorSpace() {
+            try {
+                showVectorLoading(true);
+                
+                const response = await fetch('/vector-space');
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to load vector space');
+                }
+
+                if (data.total_vectors === 0) {
+                    showVectorEmpty(true);
+                    return;
+                }
+
+                vectorData = data;
+                updateVectorStats(data);
+                updateSourcesList(data.sources);
+                
+                // Get embeddings for reduction
+                const embeddings = data.vectors.map(v => v.embedding);
+                const method = reductionMethodSelect.value;
+                
+                // Reduce dimensions
+                const reductionResponse = await fetch('/vector-space/reduce', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        embeddings: embeddings,
+                        method: method
+                    })
+                });
+
+                const reductionData = await reductionResponse.json();
+                
+                if (!reductionResponse.ok) {
+                    throw new Error(reductionData.error || 'Failed to reduce dimensions');
+                }
+
+                // Create visualization
+                createVectorVisualization(data.vectors, reductionData.coordinates);
+                
+            } catch (error) {
+                console.error('Error loading vector space:', error);
+                showVectorEmpty(true);
+                
+                // Show error in empty state
+                const emptyDiv = document.getElementById('vectorEmpty');
+                emptyDiv.innerHTML = `
+                    <div class="empty-icon">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                    <h3>Error Loading Vector Space</h3>
+                    <p>${error.message}</p>
+                    <button class="btn btn-primary" onclick="loadVectorSpace()" style="margin-top: 1rem;">
+                        <i class="fas fa-retry"></i> Try Again
+                    </button>
+                `;
+            } finally {
+                showVectorLoading(false);
+            }
+        }
+
+        function showVectorLoading(show) {
+            vectorLoading.style.display = show ? 'block' : 'none';
+            vectorEmpty.style.display = 'none';
+        }
+
+        function showVectorEmpty(show) {
+            vectorEmpty.style.display = show ? 'block' : 'none';
+            vectorLoading.style.display = 'none';
+        }
+
+        function updateVectorStats(data) {
+            document.getElementById('totalVectors').textContent = data.total_vectors.toLocaleString();
+            document.getElementById('totalSources').textContent = data.total_sources.toLocaleString();
+            document.getElementById('embeddingDim').textContent = data.embedding_dimension.toLocaleString();
+        }
+
+        function updateSourcesList(sources) {
+            const sourcesList = document.getElementById('sourcesList');
+            sourcesList.innerHTML = '';
+
+            Object.values(sources).forEach(source => {
+                const sourceElement = document.createElement('div');
+                sourceElement.className = 'source-item';
+                sourceElement.innerHTML = `
+                    <div class="source-name">${source.name}</div>
+                    <div class="source-meta">
+                        ${source.chunks} chunks • ${(source.total_chars / 1000).toFixed(1)}k chars
+                        ${source.has_images ? ' • 📸' : ''}
+                    </div>
+                `;
+                
+                sourceElement.addEventListener('click', () => {
+                    highlightSourceVectors(source.name);
+                });
+                
+                sourcesList.appendChild(sourceElement);
+            });
+        }
+
+        function createVectorVisualization(vectors, coordinates) {
+            // Clear existing visualization
+            d3.select('#vectorCanvas').selectAll('*').remove();
+
+            const svg = d3.select('#vectorCanvas');
+            const container = svg.node().getBoundingClientRect();
+            const width = container.width;
+            const height = container.height;
+
+            // Create scales
+            const xExtent = d3.extent(coordinates, d => d[0]);
+            const yExtent = d3.extent(coordinates, d => d[1]);
+            
+            const margin = { top: 20, right: 20, bottom: 20, left: 20 };
+            const xScale = d3.scaleLinear()
+                .domain(xExtent)
+                .range([margin.left, width - margin.right]);
+            
+            const yScale = d3.scaleLinear()
+                .domain(yExtent)
+                .range([height - margin.bottom, margin.top]);
+
+            // Color scale based on source
+            const sources = [...new Set(vectors.map(v => v.source))];
+            const colorScale = d3.scaleOrdinal()
+                .domain(sources)
+                .range(d3.schemeSet3);
+
+            // Create zoom behavior
+            const zoom = d3.zoom()
+                .scaleExtent([0.5, 10])
+                .on('zoom', handleZoom);
+
+            svg.call(zoom);
+
+            // Create main group for zoom/pan
+            const g = svg.append('g');
+
+            // Add vector points
+            const points = g.selectAll('.vector-point')
+                .data(vectors.map((v, i) => ({
+                    ...v,
+                    x: coordinates[i][0],
+                    y: coordinates[i][1]
+                })))
+                .enter()
+                .append('circle')
+                .attr('class', 'vector-point')
+                .attr('cx', d => xScale(d.x))
+                .attr('cy', d => yScale(d.y))
+                .attr('r', d => d.has_images ? 6 : 4)
+                .attr('fill', d => colorScale(d.source))
+                .attr('stroke', '#fff')
+                .attr('stroke-width', 1)
+                .style('opacity', 0.8);
+
+            // Add interactions
+            points
+                .on('mouseover', handlePointHover)
+                .on('mouseout', handlePointLeave)
+                .on('click', handlePointClick);
+
+            function handleZoom(event) {
+                const { transform } = event;
+                g.attr('transform', transform);
+            }
+
+            function handlePointHover(event, d) {
+                // Highlight point
+                d3.select(this)
+                    .transition()
+                    .duration(150)
+                    .attr('r', d.has_images ? 8 : 6)
+                    .style('opacity', 1);
+
+                // Show tooltip
+                const tooltip = d3.select('#vectorTooltip');
+                tooltip.style('display', 'block')
+                    .style('left', (event.pageX + 10) + 'px')
+                    .style('top', (event.pageY - 10) + 'px');
+
+                tooltip.select('.tooltip-source').text(d.source);
+                tooltip.select('.tooltip-preview').text(d.preview);
+                
+                const keywordsContainer = tooltip.select('.tooltip-keywords');
+                keywordsContainer.selectAll('*').remove();
+                d.keywords.slice(0, 5).forEach(keyword => {
+                    const tag = keywordsContainer.append('span')
+                        .attr('class', 'keyword-tag')
+                        .text(keyword);
+                });
+            }
+
+            function handlePointLeave(event, d) {
+                // Reset point
+                d3.select(this)
+                    .transition()
+                    .duration(150)
+                    .attr('r', d.has_images ? 6 : 4)
+                    .style('opacity', 0.8);
+
+                // Hide tooltip
+                d3.select('#vectorTooltip').style('display', 'none');
+            }
+
+            function handlePointClick(event, d) {
+                // Highlight selected point
+                points.classed('selected', false);
+                d3.select(this).classed('selected', true);
+
+                // Show detailed info in sidebar
+                showVectorDetails(d);
+                
+                // Zoom to point
+                const scale = 3;
+                const [x, y] = [xScale(d.x), yScale(d.y)];
+                
+                svg.transition()
+                    .duration(750)
+                    .call(zoom.transform, 
+                        d3.zoomIdentity
+                            .translate(width / 2, height / 2)
+                            .scale(scale)
+                            .translate(-x, -y)
+                    );
+            }
+
+            currentVectorView = { svg, g, points, xScale, yScale, colorScale, zoom };
+        }
+
+        function showVectorDetails(vector) {
+            const selectedPanel = document.getElementById('vectorSelected');
+            selectedPanel.style.display = 'block';
+
+            document.getElementById('selectedSource').textContent = vector.source;
+            document.getElementById('selectedPreview').textContent = vector.preview;
+            
+            const keywordsContainer = document.getElementById('selectedKeywords');
+            keywordsContainer.innerHTML = '';
+            
+            vector.keywords.forEach(keyword => {
+                const tag = document.createElement('span');
+                tag.className = 'keyword-tag';
+                tag.textContent = keyword;
+                keywordsContainer.appendChild(tag);
+            });
+        }
+
+        function highlightSourceVectors(sourceName) {
+            if (!currentVectorView) return;
+
+            const { points } = currentVectorView;
+            
+            // Reset all points
+            points
+                .style('opacity', 0.3)
+                .attr('stroke-width', 1);
+
+            // Highlight selected source
+            points
+                .filter(d => d.source === sourceName)
+                .style('opacity', 1)
+                .attr('stroke-width', 2)
+                .attr('stroke', '#333');
+
+            // Update source list selection
+            document.querySelectorAll('.source-item').forEach(item => {
+                item.classList.toggle('selected', item.querySelector('.source-name').textContent === sourceName);
+            });
+        }
+
+        // Refresh vectors button
+        refreshVectorsBtn.addEventListener('click', () => {
+            vectorData = null;
+            loadVectorSpace();
+        });
+
+        // Method change handler
+        reductionMethodSelect.addEventListener('change', () => {
+            if (vectorData) {
+                loadVectorSpace(); // Reload with new method
+            }
+        });
+
+        // Settings panel functionality
+        settingsBtn.addEventListener('click', () => {
+            settingsPanel.classList.add('open');
+            settingsOverlay.classList.add('open');
+            settingsBtn.classList.add('active');
+        });
+
+        function closeSettingsPanel() {
+            settingsPanel.classList.remove('open');
+            settingsOverlay.classList.remove('open');
+            settingsBtn.classList.remove('active');
+        }
+
+        closeSettings.addEventListener('click', closeSettingsPanel);
+        settingsOverlay.addEventListener('click', closeSettingsPanel);
+
+        // Auto-resize textarea
+        chatInput.addEventListener('input', function() {
+            this.style.height = '56px';
+            this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+        });
+
+        // Send message on Enter
+        chatInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+
+        // Send button click
+        sendBtn.addEventListener('click', sendMessage);
+
+        // File upload handling
+        fileUpload.addEventListener('click', () => fileInput.click());
+        
+        fileUpload.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            fileUpload.classList.add('dragover');
+        });
+
+        fileUpload.addEventListener('dragleave', () => {
+            fileUpload.classList.remove('dragover');
+        });
+
+        fileUpload.addEventListener('drop', (e) => {
+            e.preventDefault();
+            fileUpload.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            handleFileUpload(files);
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            handleFileUpload(e.target.files);
+        });
+
+        // URL processing
+        processUrlBtn.addEventListener('click', processUrl);
+
+        // Database operations
+        clearDbBtn.addEventListener('click', clearDatabase);
+        healthCheckBtn.addEventListener('click', checkHealth);
+
+        // Image modal
+        modalClose.addEventListener('click', closeImageModal);
+        imageModal.addEventListener('click', (e) => {
+            if (e.target === imageModal) closeImageModal();
+        });
+
+        function openImageModal(imageSrc) {
+            modalImage.src = imageSrc;
+            imageModal.classList.add('open');
+        }
+
+        function closeImageModal() {
+            imageModal.classList.remove('open');
+        }
+
+        // Send message function
+        async function sendMessage() {
+            const message = chatInput.value.trim();
+            if (!message || isLoading) return;
+
+            // Clear empty state if it exists
+            const emptyState = chatMessages.querySelector('.empty-state');
+            if (emptyState) {
+                emptyState.remove();
+            }
+
+            // Add user message
+            addMessage(message, 'user');
+            chatInput.value = '';
+            chatInput.style.height = '56px';
+
+            // Show loading
+            const loadingMessage = addLoadingMessage();
+            setLoading(true);
+
+            try {
+                const response = await fetch('/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ message: message })
+                });
+
+                const data = await response.json();
+                
+                // Remove loading message
+                loadingMessage.remove();
+
+                if (response.ok) {
+                    console.log('📸 Chat response data:', data); // Debug log
+                    console.log('📸 Has images:', data.has_images, 'Images array:', data.images); // Debug log
+                    
+                    addMessage(data.response, 'assistant', data.sources || [], data.images || []);
+                } else {
+                    addMessage(`Error: ${data.error || 'Something went wrong'}`, 'assistant');
+                }
+            } catch (error) {
+                loadingMessage.remove();
+                addMessage(`Error: ${error.message}`, 'assistant');
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        function addMessage(content, sender, sources = [], images = []) {
+            console.log('📸 addMessage called with:', { content: content.substring(0, 100), sender, sources, images }); // Debug log
+            
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${sender}`;
+
+            const avatar = document.createElement('div');
+            avatar.className = 'message-avatar';
+            avatar.innerHTML = sender === 'user' ? '<i class="fas fa-user"></i>' : '<i class="fas fa-brain"></i>';
+
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'message-content';
+
+            const bubble = document.createElement('div');
+            bubble.className = 'message-bubble';
+            bubble.innerHTML = content.replace(/\n/g, '<br>');
+
+            contentDiv.appendChild(bubble);
+
+            // Add images if they exist
+            if (images && images.length > 0) {
+                console.log('📸 Adding images to message:', images); // Debug log
+                const imageGallery = document.createElement('div');
+                imageGallery.className = 'image-gallery';
+
+                images.forEach((img, index) => {
+                    const imageItem = document.createElement('div');
+                    imageItem.className = 'image-item';
+                    
+                    const imageElement = document.createElement('img');
+                    imageElement.src = `data:image/png;base64,${img.base64_data}`;
+                    imageElement.alt = img.alt_text || `Image ${index + 1}`;
+                    imageElement.addEventListener('click', () => openImageModal(imageElement.src));
+
+                    const caption = document.createElement('div');
+                    caption.className = 'image-caption';
+                    caption.textContent = img.description || img.alt_text || `Image ${index + 1}`;
+
+                    imageItem.appendChild(imageElement);
+                    imageItem.appendChild(caption);
+                    imageGallery.appendChild(imageItem);
+                });
+
+                contentDiv.appendChild(imageGallery);
+            }
+
+            // Add sources if they exist
+            if (sources && sources.length > 0) {
+                const sourcesDiv = document.createElement('div');
+                sourcesDiv.className = 'sources';
+                
+                const sourcesTitle = document.createElement('div');
+                sourcesTitle.className = 'sources-title';
+                sourcesTitle.textContent = 'Sources';
+                sourcesDiv.appendChild(sourcesTitle);
+
+                sources.forEach(source => {
+                    const sourceItem = document.createElement('div');
+                    sourceItem.className = 'source-item';
+                    sourceItem.innerHTML = `<i class="fas fa-file"></i> ${source}`;
+                    sourcesDiv.appendChild(sourceItem);
+                });
+
+                contentDiv.appendChild(sourcesDiv);
+            }
+
+            messageDiv.appendChild(avatar);
+            messageDiv.appendChild(contentDiv);
+            chatMessages.appendChild(messageDiv);
+
+            // Scroll to bottom
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function addLoadingMessage() {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message assistant';
+
+            const avatar = document.createElement('div');
+            avatar.className = 'message-avatar';
+            avatar.innerHTML = '<i class="fas fa-brain"></i>';
+
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'message-content';
+
+            const bubble = document.createElement('div');
+            bubble.className = 'message-bubble';
+            
+            const loading = document.createElement('div');
+            loading.className = 'loading';
+            loading.innerHTML = '<div class="spinner"></div> Thinking...';
+            
+            bubble.appendChild(loading);
+            contentDiv.appendChild(bubble);
+            messageDiv.appendChild(avatar);
+            messageDiv.appendChild(contentDiv);
+            chatMessages.appendChild(messageDiv);
+
+            // Scroll to bottom
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+
+            return messageDiv;
+        }
+
+        function setLoading(loading) {
+            isLoading = loading;
+            sendBtn.disabled = loading;
+            chatInput.disabled = loading;
+        }
+
+        function showStatus(elementId, message, type = 'info') {
+            const statusElement = document.getElementById(elementId);
+            statusElement.className = `status ${type}`;
+            statusElement.style.display = 'flex';
+            
+            let icon = 'info-circle';
+            if (type === 'success') icon = 'check-circle';
+            else if (type === 'error') icon = 'exclamation-circle';
+            else if (type === 'warning') icon = 'exclamation-triangle';
+            
+            statusElement.innerHTML = `
+                <i class="fas fa-${icon}"></i>
+                ${message}
+            `;
+            
+            setTimeout(() => {
+                statusElement.style.display = 'none';
+            }, 5000);
+        }
+
+        // File upload handler
+        async function handleFileUpload(files) {
+            if (!files.length) return;
+
+            try {
+                showStatus('uploadStatus', `Uploading ${files.length} file(s)...`, 'info');
+                
+                let successCount = 0;
+                let errorCount = 0;
+                
+                // Upload files one by one since backend expects single file
+                for (let i = 0; i < files.length; i++) {
+                    const file = files[i];
+                    const formData = new FormData();
+                    formData.append('file', file);
+                    
+                    try {
+                        const response = await fetch('/upload', {
+                            method: 'POST',
+                            body: formData
+                        });
+
+                        const data = await response.json();
+
+                        if (response.ok) {
+                            successCount++;
+                        } else {
+                            errorCount++;
+                            console.error(`Failed to upload ${file.name}:`, data.error);
+                        }
+                    } catch (error) {
+                        errorCount++;
+                        console.error(`Error uploading ${file.name}:`, error);
+                    }
+                }
+                
+                // Show final status
+                if (errorCount === 0) {
+                    showStatus('uploadStatus', `Successfully uploaded ${successCount} file(s)`, 'success');
+                } else if (successCount > 0) {
+                    showStatus('uploadStatus', `Uploaded ${successCount} file(s), ${errorCount} failed`, 'warning');
+                } else {
+                    showStatus('uploadStatus', `Failed to upload ${errorCount} file(s)`, 'error');
+                }
+                
+                fileInput.value = '';  // Clear the file input
+                
+            } catch (error) {
+                showStatus('uploadStatus', `Error: ${error.message}`, 'error');
+            }
+        }
+
+        // URL processing handler
+        async function processUrl() {
+            const url = urlInput.value.trim();
+            if (!url) return;
+
+            try {
+                showStatus('urlStatus', 'Processing URL...', 'info');
+                
+                const response = await fetch('/process-url', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ url: url })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    showStatus('urlStatus', `Successfully processed: ${data.title}`, 'success');
+                    urlInput.value = '';
+                } else {
+                    showStatus('urlStatus', `Error: ${data.error}`, 'error');
+                }
+            } catch (error) {
+                showStatus('urlStatus', `Error: ${error.message}`, 'error');
+            }
+        }
+
+        // Clear database handler
+        async function clearDatabase() {
+            if (!confirm('Are you sure you want to clear the database? This cannot be undone.')) {
+                return;
+            }
+
+            try {
+                showStatus('dbStatus', 'Clearing database...', 'info');
+                
+                const response = await fetch('/clear-database', {
+                    method: 'POST'
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    showStatus('dbStatus', 'Database cleared successfully', 'success');
+                    
+                    // Clear chat messages and show empty state
+                    chatMessages.innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-icon">
+                                <i class="fas fa-comments"></i>
+                            </div>
+                            <h3 class="empty-title">Welcome to Insight</h3>
+                            <p class="empty-subtitle">
+                                Your AI research assistant. Ask questions about your documents or any topic.<br>
+                                Upload documents or process web content using the settings panel.
+                            </p>
+                        </div>
+                    `;
+                } else {
+                    showStatus('dbStatus', `Error: ${data.error}`, 'error');
+                }
+            } catch (error) {
+                showStatus('dbStatus', `Error: ${error.message}`, 'error');
+            }
+        }
+
+        // Health check handler
+        async function checkHealth() {
+            try {
+                showStatus('healthStatus', 'Checking system health...', 'info');
+                
+                const response = await fetch('/health');
+                const data = await response.json();
+
+                if (response.ok) {
+                    const healthInfo = [
+                        `Status: ${data.status}`,
+                        `ChromaDB: ${data.chromadb_status}`,
+                        `OpenAI: ${data.openai_configured ? 'Configured' : 'Not configured'}`
+                    ].join(' • ');
+                    
+                    showStatus('healthStatus', healthInfo, 'success');
+                } else {
+                    showStatus('healthStatus', 'Health check failed', 'error');
+                }
+            } catch (error) {
+                showStatus('healthStatus', `Error: ${error.message}`, 'error');
+            }
+        }
+
+        // Initialize the app
+        document.addEventListener('DOMContentLoaded', function() {
+            // Focus on chat input
+            chatInput.focus();
+            
+            // Check system health on startup
+            checkHealth();
+        });
+    </script>
+</body>
+</html> 

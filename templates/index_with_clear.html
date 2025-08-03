@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RAG Chatbot - Complete Solution</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f7f8fc;
+            color: #333;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1rem 2rem;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .main-container {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .sidebar {
+            width: 300px;
+            background: white;
+            border-right: 1px solid #e1e5e9;
+            padding: 1.5rem;
+            overflow-y: auto;
+        }
+
+        .section {
+            margin-bottom: 2rem;
+        }
+
+        .section h3 {
+            font-size: 1rem;
+            margin-bottom: 1rem;
+            color: #4a5568;
+        }
+
+        .file-input-wrapper {
+            position: relative;
+            display: inline-block;
+            width: 100%;
+            margin-bottom: 1rem;
+        }
+
+        .file-input {
+            position: absolute;
+            left: -9999px;
+        }
+
+        .file-input-label {
+            display: block;
+            padding: 0.75rem 1rem;
+            background: #f8f9fa;
+            border: 2px dashed #dee2e6;
+            border-radius: 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+        }
+
+        .file-input-label:hover {
+            background: #e9ecef;
+            border-color: #6c757d;
+        }
+
+        .url-input, .btn {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .btn {
+            background: #28a745;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: 500;
+            transition: background 0.3s ease;
+        }
+
+        .btn:hover {
+            background: #218838;
+        }
+
+        .btn.danger {
+            background: #dc3545;
+        }
+
+        .btn.danger:hover {
+            background: #c82333;
+        }
+
+        .btn.info {
+            background: #17a2b8;
+        }
+
+        .btn.info:hover {
+            background: #138496;
+        }
+
+        .status {
+            margin-top: 1rem;
+            padding: 0.75rem;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            display: none;
+        }
+
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .status.info {
+            background: #cce7ff;
+            color: #004085;
+        }
+
+        .chat-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: white;
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 2rem;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .message {
+            max-width: 80%;
+        }
+
+        .message.user {
+            align-self: flex-end;
+        }
+
+        .message.assistant {
+            align-self: flex-start;
+        }
+
+        .message-bubble {
+            padding: 1rem 1.25rem;
+            border-radius: 1rem;
+            line-height: 1.5;
+            font-size: 0.95rem;
+        }
+
+        .message.user .message-bubble {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .message.assistant .message-bubble {
+            background: #f8f9fa;
+            color: #333;
+            border: 1px solid #e9ecef;
+        }
+
+        .sources {
+            margin-top: 0.75rem;
+            font-size: 0.8rem;
+            color: #6c757d;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem 2rem;
+            color: #6c757d;
+        }
+
+        .chat-input-container {
+            padding: 1.5rem 2rem;
+            border-top: 1px solid #e1e5e9;
+            background: white;
+        }
+
+        .chat-input-wrapper {
+            display: flex;
+            gap: 1rem;
+            align-items: flex-end;
+        }
+
+        .chat-input {
+            flex: 1;
+            min-height: 44px;
+            padding: 0.75rem 1rem;
+            border: 1px solid #dee2e6;
+            border-radius: 22px;
+            font-size: 0.95rem;
+            resize: none;
+        }
+
+        .send-btn {
+            width: 44px;
+            height: 44px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .db-info {
+            background: #f8f9fa;
+            padding: 1rem;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            margin-top: 1rem;
+            white-space: pre-line;
+        }
+
+        @media (max-width: 768px) {
+            .main-container {
+                flex-direction: column;
+            }
+            .sidebar {
+                width: 100%;
+                max-height: 300px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🤖 RAG Chatbot - Complete Solution</h1>
+        <p>Upload documents, process URLs, ask questions with AI-powered search</p>
+    </div>
+
+    <div class="main-container">
+        <div class="sidebar">
+            <div class="section">
+                <h3>📄 Upload Documents</h3>
+                <div class="file-input-wrapper">
+                    <input type="file" id="fileInput" class="file-input" accept=".pdf,.docx,.pptx,.xlsx,.jpg,.jpeg,.png">
+                    <label for="fileInput" class="file-input-label">
+                        📎 Choose files (PDF, Word, PowerPoint, Excel, Images)
+                    </label>
+                </div>
+            </div>
+
+            <div class="section">
+                <h3>🌐 Process URL</h3>
+                <input type="url" id="urlInput" class="url-input" placeholder="https://example.com or Confluence URL">
+                <button id="processUrlBtn" class="btn">🔗 Process URL</button>
+            </div>
+
+            <div class="section">
+                <h3>🗑️ Database Management</h3>
+                <button id="dbStatusBtn" class="btn info">📊 Show Status</button>
+                <button id="clearDbBtn" class="btn danger">🗑️ Clear Database</button>
+                <div id="dbInfo" class="db-info" style="display: none;"></div>
+            </div>
+
+            <div id="status" class="status"></div>
+        </div>
+
+        <div class="chat-container">
+            <div id="chatMessages" class="chat-messages">
+                <div class="empty-state">
+                    <div style="font-size: 3rem; margin-bottom: 1rem;">🤖💬</div>
+                    <h3>Welcome to RAG Chatbot!</h3>
+                    <p>Upload documents or process URLs, then ask questions.</p>
+                    <p style="margin-top: 1rem;"><strong>Features:</strong></p>
+                    <ul style="text-align: left; display: inline-block; margin-top: 0.5rem;">
+                        <li>📄 Multi-format documents (PDF, Word, Excel, PowerPoint)</li>
+                        <li>🔍 OCR for text in images</li>
+                        <li>🌐 Web scraping and Confluence support</li>
+                        <li>🧠 AI-powered semantic search</li>
+                        <li>📊 Source attribution and transparency</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="chat-input-container">
+                <div class="chat-input-wrapper">
+                    <textarea id="chatInput" class="chat-input" placeholder="Ask about your documents or paste a URL..." rows="1"></textarea>
+                    <button id="sendBtn" class="send-btn">➤</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const fileInput = document.getElementById('fileInput');
+        const urlInput = document.getElementById('urlInput');
+        const processUrlBtn = document.getElementById('processUrlBtn');
+        const dbStatusBtn = document.getElementById('dbStatusBtn');
+        const clearDbBtn = document.getElementById('clearDbBtn');
+        const chatInput = document.getElementById('chatInput');
+        const sendBtn = document.getElementById('sendBtn');
+        const chatMessages = document.getElementById('chatMessages');
+        const status = document.getElementById('status');
+        const dbInfo = document.getElementById('dbInfo');
+
+        let isProcessing = false;
+
+        // Auto-resize textarea
+        chatInput.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+        });
+
+        // Send message on Enter
+        chatInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+
+        // Event listeners
+        sendBtn.addEventListener('click', sendMessage);
+        processUrlBtn.addEventListener('click', processUrl);
+        dbStatusBtn.addEventListener('click', showDatabaseStatus);
+        clearDbBtn.addEventListener('click', clearDatabase);
+        fileInput.addEventListener('change', uploadFile);
+
+        function showStatus(message, type = 'info') {
+            status.textContent = message;
+            status.className = `status ${type}`;
+            status.style.display = 'block';
+
+            if (type === 'success') {
+                setTimeout(() => {
+                    status.style.display = 'none';
+                }, 5000);
+            }
+        }
+
+        function hideEmptyState() {
+            const emptyState = document.querySelector('.empty-state');
+            if (emptyState) {
+                emptyState.style.display = 'none';
+            }
+        }
+
+        function addMessage(content, sender = 'user', sources = [], images = []) {
+            hideEmptyState();
+            
+            // Debug logging
+            console.log('addMessage called:', {sender, imagesCount: images ? images.length : 0, images});
+
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${sender}`;
+
+            const bubbleDiv = document.createElement('div');
+            bubbleDiv.className = 'message-bubble';
+            bubbleDiv.textContent = content;
+
+            messageDiv.appendChild(bubbleDiv);
+
+            // Add images if provided
+            if (images && images.length > 0) {
+                console.log('Adding images to message:', images);
+                const imagesDiv = document.createElement('div');
+                imagesDiv.className = 'message-images';
+                imagesDiv.style.marginTop = '10px';
+                
+                images.forEach((image, index) => {
+                    const imgContainer = document.createElement('div');
+                    imgContainer.style.marginBottom = '10px';
+                    imgContainer.style.border = '1px solid #ddd';
+                    imgContainer.style.borderRadius = '8px';
+                    imgContainer.style.padding = '10px';
+                    imgContainer.style.backgroundColor = '#f9f9f9';
+                    
+                    const img = document.createElement('img');
+                    img.src = `data:image/png;base64,${image.base64_data}`;
+                    img.style.maxWidth = '100%';
+                    img.style.height = 'auto';
+                    img.style.borderRadius = '4px';
+                    img.alt = image.alt_text || `Image ${index + 1}`;
+                    img.title = image.description || image.alt_text || `Image ${index + 1}`;
+                    
+                    // Add click to zoom functionality
+                    img.style.cursor = 'pointer';
+                    img.onclick = () => {
+                        const modal = document.createElement('div');
+                        modal.style.position = 'fixed';
+                        modal.style.top = '0';
+                        modal.style.left = '0';
+                        modal.style.width = '100%';
+                        modal.style.height = '100%';
+                        modal.style.backgroundColor = 'rgba(0,0,0,0.8)';
+                        modal.style.display = 'flex';
+                        modal.style.justifyContent = 'center';
+                        modal.style.alignItems = 'center';
+                        modal.style.zIndex = '1000';
+                        modal.style.cursor = 'pointer';
+                        
+                        const modalImg = document.createElement('img');
+                        modalImg.src = img.src;
+                        modalImg.style.maxWidth = '90%';
+                        modalImg.style.maxHeight = '90%';
+                        modalImg.style.objectFit = 'contain';
+                        
+                        modal.appendChild(modalImg);
+                        modal.onclick = () => document.body.removeChild(modal);
+                        document.body.appendChild(modal);
+                    };
+                    
+                    imgContainer.appendChild(img);
+                    
+                    // Add image description if available
+                    if (image.description || image.alt_text) {
+                        const descDiv = document.createElement('div');
+                        descDiv.style.marginTop = '5px';
+                        descDiv.style.fontSize = '12px';
+                        descDiv.style.color = '#666';
+                        descDiv.style.fontStyle = 'italic';
+                        descDiv.textContent = image.description || image.alt_text;
+                        imgContainer.appendChild(descDiv);
+                    }
+                    
+                    imagesDiv.appendChild(imgContainer);
+                });
+                
+                messageDiv.appendChild(imagesDiv);
+            }
+
+            // Add sources if provided
+            if (sources && sources.length > 0) {
+                const sourcesDiv = document.createElement('div');
+                sourcesDiv.className = 'sources';
+                sourcesDiv.innerHTML = `<strong>Sources:</strong> ${sources.join(', ')}`;
+                messageDiv.appendChild(sourcesDiv);
+            }
+
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        async function sendMessage() {
+            const message = chatInput.value.trim();
+            if (!message || isProcessing) return;
+
+            isProcessing = true;
+            sendBtn.disabled = true;
+
+            addMessage(message, 'user');
+            chatInput.value = '';
+            chatInput.style.height = 'auto';
+
+            try {
+                const response = await fetch('/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: message })
+                });
+
+                const data = await response.json();
+                
+                // Debug logging
+                console.log('Chat response received:', {
+                    hasImages: data.has_images,
+                    imagesCount: data.images ? data.images.length : 0,
+                    images: data.images
+                });
+
+                if (data.error) {
+                    addMessage(`❌ Error: ${data.error}`, 'assistant');
+                    showStatus(`❌ Error: ${data.error}`, 'error');
+                } else {
+                    addMessage(data.response, 'assistant', data.sources || [], data.images || []);
+                    
+                    // Show success message if images were found
+                    if (data.has_images && data.images && data.images.length > 0) {
+                        showStatus(`✅ Found ${data.images.length} relevant image(s)`, 'success');
+                    }
+                }
+            } catch (error) {
+                addMessage(`❌ Error: ${error.message}`, 'assistant');
+                showStatus(`❌ Error: ${error.message}`, 'error');
+            } finally {
+                isProcessing = false;
+                sendBtn.disabled = false;
+                chatInput.focus();
+            }
+        }
+
+        async function processUrl() {
+            const url = urlInput.value.trim();
+            if (!url || isProcessing) return;
+
+            isProcessing = true;
+            processUrlBtn.disabled = true;
+            showStatus('🌐 Processing URL...', 'info');
+
+            try {
+                const response = await fetch('/process-url', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url: url })
+                });
+
+                const data = await response.json();
+
+                if (data.error) {
+                    showStatus(`❌ Error: ${data.error}`, 'error');
+                } else {
+                    showStatus(`✅ ${data.message}`, 'success');
+                    urlInput.value = '';
+                    
+                    hideEmptyState();
+                    addMessage(`🌐 Processed: ${data.title}\n\nExtracted ${data.characters_extracted} characters. You can now ask questions!`, 'assistant');
+                }
+            } catch (error) {
+                showStatus(`❌ Error: ${error.message}`, 'error');
+            } finally {
+                isProcessing = false;
+                processUrlBtn.disabled = false;
+            }
+        }
+
+        async function uploadFile() {
+            const file = fileInput.files[0];
+            if (!file || isProcessing) return;
+
+            isProcessing = true;
+            showStatus('📄 Processing file...', 'info');
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (data.error) {
+                    showStatus(`❌ Error: ${data.error}`, 'error');
+                } else {
+                    showStatus(`✅ ${data.message}`, 'success');
+                    fileInput.value = '';
+                    
+                    hideEmptyState();
+                    addMessage(`📄 Uploaded: ${data.original_filename}\n\nProcessed ${data.chunks_created} chunks. OCR: ${data.ocr_enabled ? 'Enabled' : 'Disabled'}`, 'assistant');
+                }
+            } catch (error) {
+                showStatus(`❌ Error: ${error.message}`, 'error');
+            } finally {
+                isProcessing = false;
+            }
+        }
+
+        async function showDatabaseStatus() {
+            try {
+                showStatus('📊 Loading database status...', 'info');
+                
+                const response = await fetch('/database-status');
+                const data = await response.json();
+                
+                let statusText = `📊 Database Status:\n`;
+                statusText += `📈 Total documents: ${data.total_documents}\n`;
+                statusText += `🗃️ ChromaDB: ${data.chromadb_exists ? 'Exists' : 'Not found'}\n`;
+                statusText += `🖼️ Images: ${data.extracted_images_exists ? 'Exists' : 'Not found'}\n`;
+                statusText += `📝 Registry: ${data.image_registry_exists ? 'Exists' : 'Not found'}`;
+                
+                dbInfo.textContent = statusText;
+                dbInfo.style.display = 'block';
+                
+                showStatus('📊 Database status loaded', 'info');
+            } catch (error) {
+                showStatus(`❌ Error getting status: ${error.message}`, 'error');
+            }
+        }
+
+        async function clearDatabase() {
+            if (!confirm('⚠️ WARNING: This will delete ALL documents, images, and processed data!\n\nAre you sure?')) {
+                return;
+            }
+
+            try {
+                showStatus('🗑️ Clearing database...', 'info');
+                
+                const response = await fetch('/clear-database', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                
+                const data = await response.json();
+                
+                if (data.error) {
+                    showStatus(`❌ Error: ${data.error}`, 'error');
+                } else {
+                    showStatus(`✅ ${data.message}`, 'success');
+                    dbInfo.textContent = '🗑️ Database cleared - all items removed';
+                    dbInfo.style.display = 'block';
+                    
+                    // Clear chat messages
+                    chatMessages.innerHTML = `
+                        <div class="empty-state">
+                            <div style="font-size: 3rem; margin-bottom: 1rem;">🤖💬</div>
+                            <h3>Database Cleared!</h3>
+                            <p>Upload new documents to get started.</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                showStatus(`❌ Error clearing database: ${error.message}`, 'error');
+            }
+        }
+
+        // Initialize
+        chatInput.focus();
+    </script>
+</body>
+</html> 
